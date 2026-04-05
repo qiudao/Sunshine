@@ -65,85 +65,23 @@ jobs:
           ccache -s
 
       - name: Collect runtime files
-        shell: pwsh
         run: |
-          # Create distribution directory
-          New-Item -ItemType Directory -Force -Path dist
+          mkdir -p dist
 
-          # Copy sunshine exe
-          Copy-Item build/sunshine.exe dist/
+          # Copy sunshine exe and build DLLs
+          cp build/sunshine.exe dist/
+          cp build/*.dll dist/ 2>/dev/null || true
 
-          # Copy all DLLs from build dir
-          Get-ChildItem build/*.dll -ErrorAction SilentlyContinue | Copy-Item -Destination dist/
+          # Use ldd to find all required DLLs from MSYS2
+          ldd build/sunshine.exe | grep ucrt64 | awk '{print $3}' | while read dll; do
+            cp "$dll" dist/ 2>/dev/null || true
+          done
 
-          # Copy required MSYS2/MinGW runtime DLLs
-          $mingwBin = "D:/a/_temp/msys64/ucrt64/bin"
-          $requiredDlls = @(
-            "libstdc++-6.dll",
-            "libgcc_s_seh-1.dll",
-            "libwinpthread-1.dll",
-            "libcurl-4.dll",
-            "libopus-0.dll",
-            "libssl-3-x64.dll",
-            "libcrypto-3-x64.dll",
-            "libminiupnpc.dll",
-            "libMinHook.dll",
-            "libboost_filesystem-mt.dll",
-            "libboost_log-mt.dll",
-            "libboost_log_setup-mt.dll",
-            "libboost_program_options-mt.dll",
-            "libboost_thread-mt.dll",
-            "libboost_json-mt.dll",
-            "libboost_regex-mt.dll",
-            "libboost_url-mt.dll",
-            "libboost_locale-mt.dll",
-            "libboost_atomic-mt.dll",
-            "libboost_chrono-mt.dll",
-            "libboost_container-mt.dll",
-            "libboost_context-mt.dll",
-            "libboost_coroutine-mt.dll",
-            "libboost_date_time-mt.dll",
-            "libiconv-2.dll",
-            "libidn2-0.dll",
-            "libssh2-1.dll",
-            "libnghttp2-14.dll",
-            "libzstd.dll",
-            "libbrotlidec.dll",
-            "libbrotlicommon.dll",
-            "libpsl-5.dll",
-            "zlib1.dll",
-            "libintl-8.dll",
-            "libunistring-5.dll"
-          )
-          foreach ($dll in $requiredDlls) {
-            $src = Join-Path $mingwBin $dll
-            if (Test-Path $src) {
-              Copy-Item $src dist/
-            }
-          }
+          # Copy web assets
+          cp -r src_assets/web dist/assets 2>/dev/null || true
 
-          # Also grab any DLL that sunshine.exe actually needs
-          # Use ldd equivalent
-          $output = & "D:/a/_temp/msys64/ucrt64/bin/ldd.exe" "build/sunshine.exe" 2>&1
-          foreach ($line in $output) {
-            if ($line -match "ucrt64.*=> (.*\.dll)") {
-              $dllPath = $matches[1].Trim()
-              if (Test-Path $dllPath) {
-                $dllName = Split-Path $dllPath -Leaf
-                if (-not (Test-Path "dist/$dllName")) {
-                  Copy-Item $dllPath dist/
-                }
-              }
-            }
-          }
-
-          # Copy web assets and config template
-          if (Test-Path "src_assets/web") {
-            Copy-Item -Recurse "src_assets/web" dist/assets/
-          }
-
-          Write-Host "Distribution contents:"
-          Get-ChildItem dist/ | Format-Table Name, Length
+          echo "Distribution contents:"
+          ls -lh dist/
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
