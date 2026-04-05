@@ -64,27 +64,37 @@ jobs:
           ninja -C build
           ccache -s
 
-      - name: Collect runtime files
+      - name: Package portable
         run: |
-          mkdir -p dist
+          cd build
+          cpack -G ZIP || true
+          ls -lh *.zip 2>/dev/null || echo "no zip created"
+          ls -lh sunshine.exe
 
-          # Copy sunshine exe and build DLLs
-          cp build/sunshine.exe dist/
-          cp build/*.dll dist/ 2>/dev/null || true
-
-          # Use ldd to find all required DLLs from MSYS2
-          ldd build/sunshine.exe | grep ucrt64 | awk '{print $3}' | while read dll; do
-            cp "$dll" dist/ 2>/dev/null || true
-          done
-
-          # Copy web assets
-          cp -r src_assets/web dist/assets 2>/dev/null || true
-
-          echo "Distribution contents:"
-          ls -lh dist/
-
-      - name: Upload Artifact
+      - name: Upload exe
         uses: actions/upload-artifact@v4
         with:
-          name: sunshine-windows
-          path: dist/
+          name: sunshine-exe
+          path: D:/a/Sunshine/Sunshine/build/sunshine.exe
+
+      - name: Upload zip if exists
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sunshine-zip
+          path: D:/a/Sunshine/Sunshine/build/*.zip
+          if-no-files-found: ignore
+
+      - name: Upload NSIS installer
+        run: |
+          cd build
+          cpack -G NSIS || true
+          ls -lh *.exe 2>/dev/null
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sunshine-installer
+          path: D:/a/Sunshine/Sunshine/build/Sunshine-*.exe
+          if-no-files-found: ignore
