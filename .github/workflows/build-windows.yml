@@ -45,7 +45,8 @@ jobs:
           mkdir -p build
           cmake -B build -G Ninja -S . \
             -DCMAKE_BUILD_TYPE=Release \
-            -DSUNSHINE_ENABLE_CUDA=OFF
+            -DSUNSHINE_ENABLE_CUDA=OFF \
+            -DBUILD_DOCS=OFF
           ninja -C build
 
       - name: Package
