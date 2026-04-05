@@ -49,13 +49,10 @@ jobs:
             -DBUILD_DOCS=OFF
           ninja -C build
 
-      - name: Package
-        run: |
-          cd build
-          cpack -G ZIP
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: sunshine-windows
-          path: build/Sunshine-*.zip
+          path: |
+            D:/a/Sunshine/Sunshine/build/sunshine.exe
+            D:/a/Sunshine/Sunshine/build/*.dll
