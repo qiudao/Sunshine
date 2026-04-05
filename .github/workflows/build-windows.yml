@@ -28,6 +28,7 @@ jobs:
           install: >-
             git
             mingw-w64-ucrt-x86_64-boost
+            mingw-w64-ucrt-x86_64-ccache
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-cppwinrt
             mingw-w64-ucrt-x86_64-curl-winssl
@@ -40,14 +41,28 @@ jobs:
             mingw-w64-ucrt-x86_64-nodejs
             mingw-w64-ucrt-x86_64-nsis
 
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: D:/a/Sunshine/Sunshine/.ccache
+          key: ccache-windows-${{ github.sha }}
+          restore-keys: |
+            ccache-windows-
+
       - name: Build
+        env:
+          CCACHE_DIR: D:/a/Sunshine/Sunshine/.ccache
+          CCACHE_MAXSIZE: 1G
         run: |
           mkdir -p build
           cmake -B build -G Ninja -S . \
             -DCMAKE_BUILD_TYPE=Release \
             -DSUNSHINE_ENABLE_CUDA=OFF \
-            -DBUILD_DOCS=OFF
+            -DBUILD_DOCS=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           ninja -C build
+          ccache -s
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
